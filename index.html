@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Moonlit Library</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101018;
+      --panel: #1a1b2b;
+      --ink: #f4f2ff;
+      --muted: #c4bfe6;
+      --accent: #9f89ff;
+      --accent-strong: #c4b4ff;
+      --border: #3c3f63;
+      --focus: #ffe08a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      background: radial-gradient(circle at top, #212447 0%, var(--bg) 55%);
+      color: var(--ink);
+      font-family: "Georgia", "Times New Roman", serif;
+      line-height: 1.6;
+    }
+
+    main {
+      width: min(100%, 44rem);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 30%), var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      box-shadow: 0 1.25rem 2.75rem rgba(0, 0, 0, 0.45);
+      padding: clamp(1rem, 3vw, 2rem);
+    }
+
+    h1 {
+      margin: 0 0 0.6rem;
+      font-size: clamp(1.6rem, 4vw, 2.3rem);
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 0 0 1rem;
+      color: var(--muted);
+      font-size: clamp(1rem, 2.5vw, 1.1rem);
+    }
+
+    #story {
+      min-height: 9rem;
+      margin-bottom: 1.1rem;
+      color: var(--ink);
+    }
+
+    .choices {
+      display: grid;
+      gap: 0.65rem;
+      margin-bottom: 0.85rem;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--accent);
+      background: rgba(159, 137, 255, 0.15);
+      color: var(--ink);
+      padding: 0.8rem 1rem;
+      border-radius: 0.7rem;
+      cursor: pointer;
+      text-align: left;
+      font: inherit;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.05s ease;
+    }
+
+    button:hover {
+      background: rgba(159, 137, 255, 0.24);
+      border-color: var(--accent-strong);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .restart {
+      margin-top: 0.75rem;
+      text-align: center;
+    }
+
+    .restart button {
+      text-align: center;
+      min-width: 9rem;
+    }
+
+    @media (max-width: 38rem) {
+      body { padding: 0.75rem; }
+      main { border-radius: 0.8rem; }
+      button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>The Moonlit Library</h1>
+      <p>A short choose-your-own-adventure.</p>
+    </header>
+
+    <section aria-live="polite" aria-atomic="true">
+      <p id="story"></p>
+      <div id="choices" class="choices"></div>
+      <div class="restart" id="restartWrap" hidden>
+        <button id="restart" type="button">Restart Adventure</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const story = document.getElementById('story');
+    const choices = document.getElementById('choices');
+    const restartWrap = document.getElementById('restartWrap');
+    const restartBtn = document.getElementById('restart');
+
+    const scenes = {
+      intro: {
+        text: 'Rain taps at stained-glass windows as you slip into the moonlit library. On the central desk rests a silver key and a map inked with shifting stars.',
+        options: [
+          { label: 'Take the silver key and follow the stars.', next: 'stacks' },
+          { label: 'Leave the key and climb the spiral ladder.', next: 'ladder' }
+        ]
+      },
+      stacks: {
+        text: 'Between towering shelves, a locked cabinet hums with quiet magic. A fox made of paper bows beside it.',
+        options: [
+          { label: 'Use the key on the cabinet.', next: 'cabinet' },
+          { label: 'Ask the paper fox for guidance.', next: 'fox' }
+        ]
+      },
+      ladder: {
+        text: 'At the balcony, moonlight spills over a telescope aimed at the city. A journal lies open to a missing final page.',
+        options: [
+          { label: 'Peer through the telescope.', next: 'telescope' },
+          { label: 'Search for the missing page.', next: 'journal' }
+        ]
+      },
+      cabinet: {
+        text: 'Inside the cabinet you find a tiny music box and a sealed bottle of ink that glows like dawn.',
+        options: [
+          { label: 'Wind the music box.', next: 'ending-songkeeper' },
+          { label: 'Write your name in the glowing ink.', next: 'ending-inkbound' }
+        ]
+      },
+      fox: {
+        text: 'The fox leads you to a hidden reading nook where two books wait: one bound in velvet, one in bark.',
+        options: [
+          { label: 'Open the velvet-bound book.', next: 'ending-dreamwarden' },
+          { label: 'Open the bark-bound book.', next: 'ending-grovekeeper' }
+        ]
+      },
+      telescope: {
+        text: 'Through the lens, constellations rearrange into a message: "Choose what must be remembered."',
+        options: [
+          { label: 'Preserve the city\'s forgotten stories.', next: 'ending-cityscribe' },
+          { label: 'Preserve your own hidden memory.', next: 'ending-heartscribe' }
+        ]
+      },
+      journal: {
+        text: 'You discover the final page tucked in an atlas. It asks for one final decision before the ink can settle.',
+        options: [
+          { label: 'Return the page untouched.', next: 'ending-watchful' },
+          { label: 'Rewrite the final paragraph.', next: 'ending-rewrite' }
+        ]
+      },
+      'ending-songkeeper': {
+        text: 'Ending — The Songkeeper: The music box awakens every sleeping shelf. By dawn, you are the library\'s gentle conductor of stories and song.',
+        ending: true
+      },
+      'ending-inkbound': {
+        text: 'Ending — Inkbound Voyager: The glowing ink folds into a map across your palm. Doors to hidden archives now open when you whisper moonlight.',
+        ending: true
+      },
+      'ending-dreamwarden': {
+        text: 'Ending — Dreamwarden: The velvet book teaches you to guard dreamt tales. Travelers come at dusk, and leave lighter than they arrived.',
+        ending: true
+      },
+      'ending-grovekeeper': {
+        text: 'Ending — Grovekeeper: The bark-bound pages sprout silver leaves. A living library grows around you, rooted in patience and wonder.',
+        ending: true
+      },
+      'ending-cityscribe': {
+        text: 'Ending — City Scribe: You record lost voices in starlit ledgers, and the city remembers every quiet hero before sunrise.',
+        ending: true
+      },
+      'ending-heartscribe': {
+        text: 'Ending — Heart Scribe: You write one buried memory true. The library returns it as courage that stays with you forever.',
+        ending: true
+      },
+      'ending-watchful': {
+        text: 'Ending — Watchful Archivist: You protect the journal\'s unfinished truth. Some stories remain open so others can find themselves inside.',
+        ending: true
+      },
+      'ending-rewrite': {
+        text: 'Ending — The Rewriter: You reshape the final paragraph. Outside, fate shifts softly, making room for brighter endings.',
+        ending: true
+      }
+    };
+
+    function renderScene(sceneId) {
+      const scene = scenes[sceneId];
+      story.textContent = scene.text;
+      choices.innerHTML = '';
+
+      if (scene.ending) {
+        restartWrap.hidden = false;
+        restartBtn.focus();
+        return;
+      }
+
+      restartWrap.hidden = true;
+      scene.options.forEach((option) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = option.label;
+        button.addEventListener('click', () => renderScene(option.next));
+        choices.appendChild(button);
+      });
+
+      const firstChoice = choices.querySelector('button');
+      if (firstChoice) {
+        firstChoice.focus();
+      }
+    }
+
+    restartBtn.addEventListener('click', () => renderScene('intro'));
+    renderScene('intro');
+  </script>
+</body>
+</html>
